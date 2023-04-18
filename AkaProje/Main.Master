@@ -24,6 +24,8 @@
 <a href="tableCreate.aspx" class="list-group-item list-group-item-action bg-light">Tablo Oluşturma</a>
 <a href="tabloListele.aspx" class="list-group-item list-group-item-action bg-light">Veri İşlemleri</a>
 <a href="tabloDüzenle.aspx" class="list-group-item list-group-item-action bg-light">Tablo Düzenle</a>
+<a href="kolonEkle.aspx" class="list-group-item list-group-item-action bg-light">Kolon Ekle</a>
+<a href="tabloListelev2.aspx" class="list-group-item list-group-item-action bg-light">Tablo Listele V2</a>
 </div>
 
 </div>

@@ -63,7 +63,8 @@ namespace AkaProje
                 Request.Url.ToString(), Session["kullaniciadi"], exception.Message, topStackEntry);
 
             Server.ClearError();
-            Response.Redirect("http://localhost:49743/CustomError.aspx");
+
+            //Response.Redirect("http://localhost:49743/CustomError.aspx");
         }
     
 

@@ -14,44 +14,59 @@ namespace AkaProje
     {
         protected void Page_Load(object sender, EventArgs e)
         {
-            if(!IsPostBack)
+            SqlHelper sqlHelper = new SqlHelper();
+            SqlConnection connection = sqlHelper.OpenConnection();
+            SqlTransaction transaction = sqlHelper.BeginTrans(connection);
+            if (!IsPostBack)
             {
-                string activationCode = !string.IsNullOrEmpty(Request.QueryString["ActivationCode"]) ? Request.QueryString["ActivationCode"] : Guid.Empty.ToString();
-                SqlHelper sqlHelper = new SqlHelper();
-
-                //ID'yi Aldığım yer
-                SqlParameter[] parameters =
+                try
                 {
+                    string activationCode = !string.IsNullOrEmpty(Request.QueryString["ActivationCode"]) ? Request.QueryString["ActivationCode"] : Guid.Empty.ToString();
+
+                    //ID'yi Aldığım yer
+                    SqlParameter[] parameters =
+                    {
                     new SqlParameter("@p1", activationCode)
                 };
 
-                int status = sqlHelper.ExecuteScalar("SELECT Id FROM tbl_ActivationUser where ActivationCode=@p1", parameters);
+                    int status = sqlHelper.ExecuteScalar(connection, "SELECT Id FROM tbl_ActivationUser where ActivationCode=@p1", parameters,transaction);
 
-                //Aktifi Set ettiğim yer
-                SqlParameter[] parameters2 =
-                {
+                    //Aktifi Set ettiğim yer
+                    SqlParameter[] parameters2 =
+                    {
                     new SqlParameter("@p2", status)
                 };
-                sqlHelper.ExecuteNonQuery("UPDATE tbl_User SET Aktif = 1 WHERE Id=@p2", parameters2);
+                    sqlHelper.ExecuteNonQuery(connection, "UPDATE tbl_User SET Aktif = 1 WHERE Id=@p2", parameters2,transaction);
 
 
-                //Önceden oluşturulan aktivasyon kodunun silindiği yer
-                SqlParameter[] parameters3 =
-                {
+                    //Önceden oluşturulan aktivasyon kodunun silindiği yer
+                    SqlParameter[] parameters3 =
+                    {
                     new SqlParameter("@p3", activationCode)
                 };
-                int rowsAffected = sqlHelper.ExecuteNonQuery("DELETE FROM tbl_ActivationUser WHERE ActivationCode = @p3", parameters3);
+                    int rowsAffected = sqlHelper.ExecuteNonQuery(connection, "DELETE FROM tbl_ActivationUser WHERE ActivationCode = @p3", parameters3,transaction);
 
-                if(rowsAffected == 1)
-                {
-                    ltMessage.Text = "Aktivasyon Tamamlandı !";
-                    System.Threading.Thread.Sleep(100000);
-                    Response.Redirect("http://localhost:49743/Login.aspx");
-                    
+                    if (rowsAffected == 1)
+                    {
+                        ltMessage.Text = "Aktivasyon Tamamlandı !";
+                        System.Threading.Thread.Sleep(100000);
+                        Response.Redirect("http://localhost:49743/Login.aspx");
+
+                    }
+                    else
+                    {
+                        ltMessage.Text = "Aktivasyon Kodu Geçerli Değil !";
+                    }
+                    sqlHelper.CommitTrans(transaction);
                 }
-                else
+                catch (Exception)
                 {
-                    ltMessage.Text = "Aktivasyon Kodu Geçerli Değil !";
+                    sqlHelper.RollbackTrans(transaction);
+                    throw;
+                }
+               finally
+                {
+                    sqlHelper.CloseConnection(connection);
                 }
             }
         }

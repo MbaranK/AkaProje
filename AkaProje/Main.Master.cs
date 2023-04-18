@@ -14,10 +14,15 @@ namespace AkaProje
             if(!IsPostBack)
             {
                 if (Session["kullaniciadi"] == null)
-                {
+                {                  
                     HttpCookie cookie = Request.Cookies["cerezler"];
-                    string cookieval = cookie.Value;
-                    Session["kullaniciadi"] = cookieval;
+                    if (cookie != null)
+                    {
+                        string cookieval = cookie.Value;
+                        Session["kullaniciadi"] = cookieval;
+                    }                        
+                    else
+                        Response.Redirect("http://localhost:49743/login.aspx");
                 }
             }
             

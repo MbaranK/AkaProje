@@ -19,14 +19,10 @@ namespace AkaProje
 
             if (!IsPostBack)
             {
-                // Only create the dynamic controls during the initial page load
                 ScriptManager1.RegisterAsyncPostBackControl(btnCogalt);
-                //txtTekrar.Text = "1";
-                //CreateDynamicControls();
             }
             else
             {
-                // Recreate the dynamic controls during every postback, including partial postbacks
                 RecreateDynamicControls();
             }
         }
@@ -52,6 +48,9 @@ namespace AkaProje
 
         protected void Button1_Click(object sender, EventArgs e)
         {
+            SqlHelper sqlHelper = new SqlHelper();
+            SqlConnection connection = sqlHelper.OpenConnection();
+            SqlTransaction transaction = sqlHelper.BeginTrans(connection);
             try
             {
                 string tableName = txtTablo.Text;
@@ -79,8 +78,9 @@ namespace AkaProje
                 }
                 query += ");";
 
-                SqlHelper sqlHelper = new SqlHelper();
-                sqlHelper.ExecuteNonQuery(query);
+                //SqlHelper sqlHelper = new SqlHelper();
+                sqlHelper.ExecuteNonQuery(connection,query,null,transaction);
+                sqlHelper.CommitTrans(transaction);
 
                 ClientScript.RegisterClientScriptBlock(this.GetType(), "alert",
                        "swal('Başarılı', 'Tablonuzu başarıyla oluşturdunuz.', 'success').then(function(){window.location.href='http://localhost:49743/Default.aspx';});", true);
@@ -88,7 +88,13 @@ namespace AkaProje
             }
             catch (Exception)
             {
-                throw;
+                sqlHelper.RollbackTrans(transaction);
+                ClientScript.RegisterClientScriptBlock(this.GetType(), "alert",
+                        "swal('Hata!', '" + "Beklenmedik bir hata oluştu, yönetici ile iletişime geçiniz." + "', 'error')", true);
+            }
+            finally
+            {
+                sqlHelper.CloseConnection(connection);
             }
 
         }
@@ -140,7 +146,7 @@ namespace AkaProje
                     ddl.CssClass = "dynamic-control";
 
                     ddl.Items.Add(new ListItem("Seçiniz", "Seçiniz"));
-                    ddl.Items.Add(new ListItem("Kelime", "varchar(50)"));
+                    ddl.Items.Add(new ListItem("Kelime", "ntext"));
                     ddl.Items.Add(new ListItem("Tarih", "datetime"));
                     ddl.Items.Add(new ListItem("Sayı", "int"));
                     ddl.Items.Add(new ListItem("Ondalıklı Sayı", "decimal(18,2)"));
@@ -171,18 +177,17 @@ namespace AkaProje
 
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                throw ex;
             }
+
             
         }
         private void RecreateDynamicControls()
         {
-            // Remove the old dynamic controls from the pnlControls panel
             pnlControls.Controls.Clear();
 
-            // Recreate the dynamic controls and add them to the pnlControls panel
             CreateDynamicControls();
         }
     }

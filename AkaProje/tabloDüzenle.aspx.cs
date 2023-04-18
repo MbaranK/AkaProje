@@ -14,22 +14,37 @@ namespace AkaProje
         {
             if (!IsPostBack)
             {
-                string kullanici = Session["kullaniciadi"].ToString();
                 SqlHelper sqlHelper = new SqlHelper();
-                SqlDataReader dr = sqlHelper.ExecuteReader($"SELECT name FROM sys.tables WHERE name LIKE '%_{kullanici}'");
-
-                List<string> tablolar = new List<string>();
-
-                while (dr.Read())
+                SqlConnection connection = sqlHelper.OpenConnection();
+                try
                 {
-                    string tableName = (string)dr["name"];
-                    tablolar.Add(tableName);
-                }
-                dr.Close();
+                    string kullanici = Session["kullaniciadi"].ToString();
+                    SqlDataReader dr = sqlHelper.ExecuteReader(connection,$"SELECT name FROM sys.tables WHERE name LIKE '%_{kullanici}'");
 
-                ddlTablolar.DataSource = tablolar;
-                ddlTablolar.DataBind();
+                    List<string> tablolar = new List<string>();
+
+                    while (dr.Read())
+                    {
+                        string tableName = (string)dr["name"];
+                        tablolar.Add(tableName);
+                    }
+                    dr.Close();
+
+                    ddlTablolar.DataSource = tablolar;
+                    ddlTablolar.DataBind();
+                   
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+                finally
+                {
+                    sqlHelper.CloseConnection(connection);
+                }
+
             }
+            CreateDynamicControls();
         }
 
             protected void btnTabloDüzenle_Click(object sender, EventArgs e)
@@ -40,6 +55,9 @@ namespace AkaProje
 
         protected void CreateDynamicControls()
         {
+            SqlHelper sqlHelper = new SqlHelper();
+            SqlConnection connection = sqlHelper.OpenConnection();
+            SqlTransaction transaction = sqlHelper.BeginTrans(connection);
             try
             {
                 string selectedTableName = ddlTablolar.SelectedItem.ToString();
@@ -48,9 +66,9 @@ namespace AkaProje
                     {
                     new SqlParameter("@TableName", selectedTableName)
                 };
-                SqlHelper sqlHelper = new SqlHelper();
+                
                 List<string> kolonİsimleri = new List<string>();
-                SqlDataReader dr = sqlHelper.ExecuteReader(query, parameters);
+                SqlDataReader dr = sqlHelper.ExecuteReader(connection,query, parameters,transaction);
                 while (dr.Read())
                 {
                     kolonİsimleri.Add(dr.GetString(0));
@@ -59,7 +77,7 @@ namespace AkaProje
 
                 pnlControl.Controls.Clear();
 
-                int kolonSayi = sqlHelper.ExecuteScalar("SELECT COUNT(*) FROM sys.columns WHERE object_id = OBJECT_ID('" + selectedTableName + "')");
+                int kolonSayi = sqlHelper.ExecuteScalar(connection,"SELECT COUNT(*) FROM sys.columns WHERE object_id = OBJECT_ID('" + selectedTableName + "')",null,transaction);
 
                 for (int i = 0; i < kolonSayi; i++)
                 {
@@ -75,32 +93,37 @@ namespace AkaProje
                     txt.ViewStateMode = ViewStateMode.Inherit;
                     txt.CssClass = "dynamic-control form-control";
 
+                    Label lbl3 = new Label();
+                    lbl3.ClientIDMode = ClientIDMode.Static;
+                    lbl3.Text = kolonİsimleri[i];
+                    lbl3.Visible = false;
+
                     Label lbl2 = new Label();
                     lbl2.ClientIDMode = ClientIDMode.Static;
                     lbl2.Text = "Data Tipi " + (i + 1).ToString() + ":";
                     lbl2.CssClass = "dynamic-control";
 
-                    //RequiredFieldValidator reqTxt = new RequiredFieldValidator();
-                    //reqTxt.ID = "reqTxt" + (i + 1).ToString();
-                    //reqTxt.ForeColor = System.Drawing.Color.Red;
-                    //reqTxt.Display = ValidatorDisplay.Dynamic;
-                    //reqTxt.ControlToValidate = txt.ID;
-                    //reqTxt.ErrorMessage = "Kolon İsmi Boş Bırakılamaz";
+                    RequiredFieldValidator reqTxt = new RequiredFieldValidator();
+                    reqTxt.ID = "reqTxt" + (i + 1).ToString();
+                    reqTxt.ForeColor = System.Drawing.Color.Red;
+                    reqTxt.Display = ValidatorDisplay.Dynamic;
+                    reqTxt.ControlToValidate = txt.ID;
+                    reqTxt.ErrorMessage = "Kolon İsmi Boş Bırakılamaz";                 
 
                     string query2 = ($"SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{selectedTableName}' AND COLUMN_NAME = '{kolonİsimleri[i]}'");
-                    string dataTipi = sqlHelper.ExecuteScalarString(query2).ToString();
+                    string dataTipi = sqlHelper.ExecuteScalarString(connection,transaction,query2).ToString();
 
                     DropDownList ddl = new DropDownList();
                     ddl.ClientIDMode = ClientIDMode.Static;
                     ddl.ID = "ddl" + (i + 1).ToString();
 
                     ddl.Items.Add(new ListItem("Seçiniz", "Seçiniz"));
-                    ddl.Items.Add(new ListItem("Kelime", "varchar"));
+                    ddl.Items.Add(new ListItem("Kelime", "ntext"));
                     ddl.Items.Add(new ListItem("Tarih", "datetime"));
                     ddl.Items.Add(new ListItem("Sayı", "int"));
-                    ddl.Items.Add(new ListItem("Ondalıklı Sayı", "decimal(18,2)"));
+                    ddl.Items.Add(new ListItem("Ondalıklı Sayı", "decimal"));
 
-                    if (dataTipi == "varchar")
+                    if (dataTipi == "ntext")
                     {
                         ddl.Items.Add("Kelime");
                     }
@@ -127,7 +150,7 @@ namespace AkaProje
                     chk.CssClass = "dynamic-control";
 
                     string query3 = ($"SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{selectedTableName}' AND COLUMN_NAME = '{kolonİsimleri[i]}'");
-                    string isNullable = sqlHelper.ExecuteScalarString(query3);
+                    string isNullable = sqlHelper.ExecuteScalarString(connection,transaction,query3);
 
                     if (isNullable == "YES")
                     {
@@ -142,43 +165,87 @@ namespace AkaProje
                     btn.ClientIDMode = ClientIDMode.Static;
                     btn.ID = "btn" + (i + 1).ToString();
                     btn.Text = "Sil";
-                    btn.CssClass = "btn btn-danger";
-                    btn.Click += new EventHandler(test);
+                    btn.CssClass = "inline btn btn-danger";
+                    btn.Click += (s, e) => {                       
+                        ClientScript.RegisterClientScriptBlock(this.GetType(), "alert",
+                       "swal({title: 'Emin misiniz?',text: 'İşlem gerçekleşirse, kolon kalıcı olarak veritabanından silinecektir.',icon: 'warning',buttons: true,dangerMode: true,}).then((willDelete) => {if (willDelete){swal('Kolon veritabanından silindi!', {icon: 'success',}); }else{swal('Silme işlemi iptal edildi.');}});", true);
+                        string kolon = txt.Text;
+                        connection.Open();
+                        sqlHelper.ExecuteNonQuery(connection,$"ALTER TABLE {selectedTableName} DROP COLUMN {kolon}",null,transaction);
+                    };
 
+
+                    Button btn2 = new Button();
+                    btn2.ClientIDMode = ClientIDMode.Static;
+                    btn2.ID = "btn2" + (i + 1).ToString();
+                    btn2.Text = "Güncelle";
+                    btn2.CssClass = "inline btn btn-warning";
+                    btn2.Click += (s, e) => {
+                        connection.Open();
+                        string kolon = txt.Text;
+                            string kolonData = lbl3.Text;
+
+                            string veriTabanıData = dataTipi.ToString();
+                            string seciliData = ddl.SelectedValue;
+
+                        if (seciliData == "decimal")
+                            seciliData = "decimal(18,2)";
+
+                            if (kolonData != kolon)
+                            {
+                                sqlHelper.ExecuteNonQuery(connection,$"EXEC sp_rename '{selectedTableName}.{kolonData}', '{kolon}'",null,transaction);
+                            }
+
+
+                            if (seciliData == "int" && veriTabanıData.Contains("decimal") || seciliData.Contains("decimal") && veriTabanıData == "int" || seciliData.Contains("ntext") && veriTabanıData == "int" || seciliData.Contains("ntext") && veriTabanıData == "datetime" || seciliData.Contains("ntext") && veriTabanıData.Contains("ntext") || seciliData.Contains("int") && veriTabanıData == "int" || seciliData.Contains("datetime") && veriTabanıData == "datetime" || seciliData.Contains("decimal") && veriTabanıData.Contains("decimal"))
+                            {
+                                sqlHelper.ExecuteNonQuery(connection,$"ALTER TABLE {selectedTableName} ALTER COLUMN {kolon} {seciliData}",null, transaction);
+                            }
+                            else
+                            {
+                                ClientScript.RegisterClientScriptBlock(this.GetType(), "alert",
+                            "swal('Hata!', 'Geçersiz dönüşüm isteği', 'error')", true);
+                            }
+
+                            if (chk.Checked)
+                            {
+                                sqlHelper.ExecuteNonQuery(connection,$"ALTER TABLE {selectedTableName} ALTER COLUMN {kolon} {seciliData} NULL",null,transaction);
+                            }
+                            else
+                            {
+                                sqlHelper.ExecuteNonQuery(connection,$"ALTER TABLE {selectedTableName} ALTER COLUMN {kolon} {seciliData} NOT NULL",null,transaction);
+                            }
+
+                            ClientScript.RegisterClientScriptBlock(this.GetType(), "alert",
+                           "swal('Başarılı', 'Tablonuzu güncellendi.', 'success');", true);
+                        
+                    };
 
                     pnlControl.Controls.Add(lbl);
-                    //pnlControl.Controls.Add(reqTxt);
+                    pnlControl.Controls.Add(reqTxt);
                     pnlControl.Controls.Add(txt);
                     pnlControl.Controls.Add(lbl2);
                     pnlControl.Controls.Add(ddl);
                     pnlControl.Controls.Add(chk);
                     pnlControl.Controls.Add(btn);
+                    pnlControl.Controls.Add(btn2);
+                    pnlControl.Controls.Add(lbl3);
+
+                    
+
                 }
+                sqlHelper.CommitTrans(transaction);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                sqlHelper.RollbackTrans(transaction);
+                ClientScript.RegisterClientScriptBlock(this.GetType(), "alert",
+                        "swal('Hata!', '" + "Beklenmedik bir hata oluştu, yönetici ile iletişime geçiniz." + "', 'error')", true);
             }
-            
-        }
-        //protected void btn_Click(object sender, EventArgs e, string btnID)
-        //{
-        //    string columnID = btnID.Replace("btn", "");
-
-        //    string selectedTableName = ddlTablolar.SelectedValue;
-
-        //    string columnName = ((TextBox)pnlControl.FindControl("txt" + columnID)).Text;
-
-        //    string query = $"ALTER TABLE {selectedTableName} DROP COLUMN {columnName}";
-
-        //    SqlHelper sqlHelper = new SqlHelper();
-        //    sqlHelper.ExecuteNonQuery(query);
-        //}
-
-        protected void test(object sender, EventArgs e)
-        {
-            ClientScript.RegisterClientScriptBlock(this.GetType(), "alert",
-                       "swal({title: 'Are you sure?',text: 'Once deleted, you will not be able to recover this imaginary file!',icon: 'warning',buttons: true,dangerMode: true,}).then((willDelete) => {if (willDelete){swal('Poof! Your imaginary file has been deleted!', {icon: 'success',}); }else{swal('Your imaginary file is safe!');}});", true);
+            finally
+            {
+                sqlHelper.CloseConnection(connection);
+            }
         }
     }
 }

@@ -104,11 +104,13 @@
     <Content Include="js\bootstrap.bundle.min.js" />
     <Content Include="js\bootstrap.min.js" />
     <Content Include="js\jquery-3.6.4.min.js" />
+    <Content Include="kolonEkle.aspx" />
     <Content Include="Login.aspx" />
     <Content Include="Register.aspx" />
     <Content Include="tableCreate.aspx" />
     <Content Include="tabloDüzenle.aspx" />
     <Content Include="tabloListele.aspx" />
+    <Content Include="tabloListelev2.aspx" />
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
@@ -136,6 +138,13 @@
     <Compile Include="Encryption.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
+    </Compile>
+    <Compile Include="kolonEkle.aspx.cs">
+      <DependentUpon>kolonEkle.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="kolonEkle.aspx.designer.cs">
+      <DependentUpon>kolonEkle.aspx</DependentUpon>
     </Compile>
     <Compile Include="Login.aspx.cs">
       <DependentUpon>Login.aspx</DependentUpon>
@@ -180,6 +189,13 @@
     </Compile>
     <Compile Include="tabloListele.aspx.designer.cs">
       <DependentUpon>tabloListele.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="tabloListelev2.aspx.cs">
+      <DependentUpon>tabloListelev2.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="tabloListelev2.aspx.designer.cs">
+      <DependentUpon>tabloListelev2.aspx</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup>

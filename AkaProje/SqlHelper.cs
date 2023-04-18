@@ -18,48 +18,50 @@ namespace AkaProje
             connectionString = ConfigurationManager.ConnectionStrings["RegistrationConnectionString"].ConnectionString;
         }
 
-        public int ExecuteNonQuery(string query, SqlParameter[] parameters = null)
+        public SqlConnection OpenConnection()
         {
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                SqlTransaction transaction = connection.BeginTransaction();
+            SqlConnection connection = new SqlConnection(connectionString);
+            connection.Open();
+            return connection;
+        }
+
+        public void CloseConnection(SqlConnection connection)
+        {
+            connection.Close();
+        }
+
+        public int ExecuteNonQuery(SqlConnection connection,string query, SqlParameter[] parameters = null, SqlTransaction transaction = null)
+        {
                 try
                 {
-                    using (SqlCommand cmd = new SqlCommand(query, connection))
-                    {
-                        cmd.Transaction = transaction;
+                SqlCommand cmd = new SqlCommand(query, connection);
+                    if(transaction != null)
+                         cmd.Transaction = transaction;
                         if (parameters != null)
                         {
                             cmd.Parameters.AddRange(parameters);
                         }
 
-                        transaction.Commit();
                         return cmd.ExecuteNonQuery();
                         
-                    }
+                    
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    transaction.Rollback();
-                    throw;
-                }
-                
-            }
+                    throw ex;
+                }               
         }
 
-        public int ExecuteScalar(string query, params SqlParameter[] parameters)
+        public int ExecuteScalar(SqlConnection connection, string query, SqlParameter[] parameters = null,SqlTransaction transaction = null)
         {
-            using(SqlConnection connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                SqlTransaction transaction = connection.BeginTransaction();
                 try
                 {
                     using (SqlCommand cmd = new SqlCommand(query, connection))
                     {
+                    if(transaction != null)
                         cmd.Transaction = transaction;
-
+                        
+                    
                         if (parameters != null)
                         {
                             cmd.Parameters.AddRange(parameters);
@@ -71,29 +73,21 @@ namespace AkaProje
                         }
 
                         int result = Convert.ToInt32(cmd.ExecuteScalar());
-                        transaction.Commit();
                         return result;
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    transaction.Rollback();
-                    throw;
+                    throw ex;
                 }
                
-            }
         }
 
-        public string ExecuteScalarString(string query, params SqlParameter[] parameters)
+        public string ExecuteScalarString(SqlConnection connection, SqlTransaction transaction, string query, SqlParameter[] parameters = null)
         {
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                SqlTransaction transaction = connection.BeginTransaction();
                 try
                 {
-                    using (SqlCommand cmd = new SqlCommand(query, connection))
-                    {
+                        SqlCommand cmd = new SqlCommand(query, connection);
                         cmd.Transaction = transaction;
 
                         if (parameters != null)
@@ -107,27 +101,23 @@ namespace AkaProje
                         }
 
                         string result = (cmd.ExecuteScalar()).ToString();
-                        transaction.Commit();
                         return result;
-                    }
+                    
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    transaction.Rollback();
-                    throw;
+                    throw ex;
                 }
 
-            }
         }
 
-        public SqlDataReader ExecuteReader(string query, SqlParameter[] parameters = null)
+        public SqlDataReader ExecuteReader(SqlConnection connection  ,string query, SqlParameter[] parameters = null, SqlTransaction transaction = null)
         {
-            SqlConnection connection = new SqlConnection(connectionString);           
-                connection.Open();
                 try
                 {
 
                 SqlCommand cmd = new SqlCommand(query, connection);
+                cmd.Transaction = transaction;
                     
                         if (parameters != null)
                         {
@@ -140,16 +130,13 @@ namespace AkaProje
                 }
                 catch (Exception ex)
                 {
-                throw;
+                throw ex;
                 }
             
         }
 
-        public DataTable ExecuteQuery(string query, SqlParameter[] parameters = null)
+        public DataTable ExecuteQuery(SqlConnection connection ,string query, SqlParameter[] parameters = null)
         {
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
                 try
                 {
                     DataTable dataTable = new DataTable();
@@ -166,11 +153,63 @@ namespace AkaProje
                 }
                 catch (Exception ex)
                 {
-                    throw;
+                    throw ex;
                 }
-               
+                        
+        }
+
+        public SqlTransaction BeginTrans(SqlConnection connection)
+        {
+            try
+            {
+                SqlTransaction transaction = connection.BeginTransaction();
+                return transaction;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+                    
+        }
+
+        public void CommitTrans(SqlTransaction transaction)
+        {
+            try
+            {
+                transaction.Commit();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            finally
+            {
+                if (transaction.Connection != null)
+                {
+                    transaction.Connection.Close();
+                }
             }
         }
+
+        public void RollbackTrans(SqlTransaction transaction)
+        {
+            try
+            {
+                transaction.Rollback();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            finally
+            {
+                if (transaction.Connection != null)
+                {
+                    transaction.Connection.Close();
+                }
+            }
+        }
+
 
     }
 }

@@ -11,7 +11,7 @@ namespace AkaProje
 {
 
 
-    public partial class tabloListele
+    public partial class tabloListelev2
     {
 
         /// <summary>
@@ -33,39 +33,12 @@ namespace AkaProje
         protected global::System.Web.UI.WebControls.Button btnListele;
 
         /// <summary>
-        /// btnVeriEkle control.
+        /// ASPxGridView1 control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Button btnVeriEkle;
-
-        /// <summary>
-        /// gridView control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.GridView gridView;
-
-        /// <summary>
-        /// pnlControl2 control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.Panel pnlControl2;
-
-        /// <summary>
-        /// btnKaydet control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.Button btnKaydet;
+        protected global::DevExpress.Web.ASPxGridView ASPxGridView1;
     }
 }
